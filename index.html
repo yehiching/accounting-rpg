@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>會計RPG（HTML版）｜分錄闖關</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+<header>
+  <div class="brand">
+    <div class="logo"></div>
+    <div>
+      <h1>會計RPG（HTML版）｜分錄闖關</h1>
+      <div class="sub">接任務 → 看憑證 → 做分錄 → 平衡通關 → 升級技能</div>
+    </div>
+  </div>
+  <div class="row">
+    <span class="pill">Lv <b id="lv">1</b></span>
+    <span class="pill">Score <b id="score">0</b>/<span id="scoreNeed">100</span></span>
+    <span class="pill">正確率 <b id="acc">0%</b></span>
+    <button class="btn secondary" id="btnReset">重置存檔</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+    <section class="card" aria-label="任務板">
+      <h2>任務板（商店街）</h2>
+      <div class="msg" style="margin-bottom:10px">
+        你是新手會計冒險者。每個任務都是一包交易憑證。<br/>
+        目標：在「分錄工作台」完成 <span class="hint">借貸平衡</span>，並選對科目，即可通關。
+      </div>
+      <div id="questList" style="display:flex; flex-direction:column; gap:10px;"></div>
+      <div class="divider"></div>
+      <div class="row">
+        <button class="btn secondary" id="btnSeed">載入更多任務</button>
+        <button class="btn" id="btnDaily">今日委託（隨機）</button>
+      </div>
+    </section>
+
+    <section class="card" aria-label="工作區">
+      <div class="row" style="justify-content:space-between">
+        <h2 style="margin:0">工作區</h2>
+        <div class="tabs">
+          <button class="tab active" data-tab="workbench">分錄工作台</button>
+          <button class="tab" data-tab="ledger">總帳</button>
+          <button class="tab" data-tab="trial">試算表</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div id="tab-workbench">
+        <div class="msg" id="questBrief">請先在左邊選擇一個任務。</div>
+        <div class="divider"></div>
+        <div class="row" style="justify-content:space-between; align-items:flex-start">
+          <div style="flex:1; min-width: 260px;">
+            <div class="pill">憑證內容</div>
+            <div class="msg mono" id="voucher" style="margin-top:8px"></div>
+          </div>
+          <div style="flex:1; min-width: 260px;">
+            <div class="pill">任務目標</div>
+            <div class="msg" id="objective" style="margin-top:8px"></div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <h2 style="margin:0 0 10px 0; font-size:14px;">分錄工作台</h2>
+        <div class="msg" style="margin-bottom:10px">
+          新增分錄列：選科目 → 借/貸 → 金額。<br/>
+          完成後按「檢查＆送出」，借貸要平衡，科目要合理。
+        </div>
+        <div class="form" aria-label="新增分錄列">
+          <select id="accSel">
+            <option value="">選擇科目…</option>
+          </select>
+          <select id="dcSel">
+            <option value="D">借</option>
+            <option value="C">貸</option>
+          </select>
+          <input id="amtSel" type="number" min="0" step="1" placeholder="金額" />
+          <button class="tinybtn" id="btnAdd" title="加入一列">＋</button>
+        </div>
+        <div style="margin-top:12px;">
+          <table>
+            <thead>
+              <tr>
+                <th>科目</th>
+                <th class="right">借</th>
+                <th class="right">貸</th>
+                <th class="right">操作</th>
+              </tr>
+            </thead>
+            <tbody id="lines"></tbody>
+            <tfoot>
+              <tr>
+                <th class="right">合計</th>
+                <th class="right mono" id="sumD">0</th>
+                <th class="right mono" id="sumC">0</th>
+                <th></th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn secondary" id="btnClear">清空分錄</button>
+          <button class="btn" id="btnCheck">檢查＆送出</button>
+          <button class="btn good" id="btnPost" disabled>通關後過帳</button>
+        </div>
+        <div class="divider"></div>
+        <div id="feedback" class="msg">提示：先挑一個任務開始。</div>
+      </div>
+
+      <div id="tab-ledger" style="display:none;">
+        <div class="msg" style="margin-bottom:10px">
+          你過關後按「過帳」，分錄會寫入總帳。
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>科目</th>
+              <th class="right">借方合計</th>
+              <th class="right">貸方合計</th>
+              <th class="right">期末餘額</th>
+            </tr>
+          </thead>
+          <tbody id="ledgerBody"></tbody>
+        </table>
+      </div>
+
+      <div id="tab-trial" style="display:none;">
+        <div class="msg" style="margin-bottom:10px">
+          試算表：把各科目餘額放進借/貸欄，應該要平衡。
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>科目</th>
+              <th class="right">借方餘額</th>
+              <th class="right">貸方餘額</th>
+            </tr>
+          </thead>
+          <tbody id="trialBody"></tbody>
+          <tfoot>
+            <tr>
+              <th class="right">合計</th>
+              <th class="right mono" id="trialD">0</th>
+              <th class="right mono" id="trialC">0</th>
+            </tr>
+          </tfoot>
+        </table>
+        <div class="divider"></div>
+        <div id="trialMsg" class="msg">尚未過帳任何分錄。</div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
